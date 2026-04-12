@@ -285,78 +285,36 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
 
   const handleDownload = async () => {
     const videoUrl = videoRef.current?.currentSrc || selectedUrl;
-    setDownloadStatus("PREPARING...");
-    setDownloadProgress(0);
+    
+    // Extract filename from URL or use movie title
+    const urlPath = new URL(videoUrl).pathname;
+    const fileName = urlPath.split('/').pop() || `${movie.title.replace(/\s+/g, '_')}.mp4`;
+    
+    setDownloadStatus("STARTING...");
     
     try {
-      const response = await fetch(videoUrl);
-      
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      
-      const contentLength = response.headers.get('content-length');
-      const total = contentLength ? parseInt(contentLength, 10) : 0;
-      
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('ReadableStream not supported');
-
-      let loaded = 0;
-      const chunks = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        chunks.push(value);
-        loaded += value.length;
-        
-        if (total) {
-          const progress = Math.round((loaded / total) * 100);
-          setDownloadProgress(progress);
-          setDownloadStatus(`DOWNLOADING ${progress}%`);
-        } else {
-          setDownloadStatus(`DOWNLOADING... ${(loaded / (1024 * 1024)).toFixed(1)}MB`);
-        }
-      }
-
-      setDownloadStatus("FINALIZING...");
-      const blob = new Blob(chunks, { type: response.headers.get('content-type') || 'video/mp4' });
-      const blobUrl = window.URL.createObjectURL(blob);
+      // Use our backend proxy to bypass CORS and force download
+      const proxyUrl = `/api/proxy-download?url=${encodeURIComponent(videoUrl)}&filename=${encodeURIComponent(fileName)}`;
       
       const link = document.createElement('a');
-      link.href = blobUrl;
-      
-      // Extract filename from URL or use movie title
-      const urlPath = new URL(videoUrl).pathname;
-      const fileName = urlPath.split('/').pop() || `${movie.title.replace(/\s+/g, '_')}.mp4`;
-      
-      link.download = fileName;
+      link.href = proxyUrl;
+      link.download = fileName; // Fallback
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      // Clean up
+      setDownloadStatus("DOWNLOAD STARTED");
       setTimeout(() => {
-        window.URL.revokeObjectURL(blobUrl);
-        setDownloadStatus("DOWNLOAD COMPLETE");
-        setTimeout(() => {
-          setDownloadStatus('READY');
-          setDownloadProgress(0);
-        }, 3000);
-      }, 100);
+        setDownloadStatus('READY');
+        setDownloadProgress(0);
+      }, 3000);
 
     } catch (error) {
       console.error('Download failed:', error);
-      setDownloadStatus("CORS BLOCKED - OPENING LINK");
+      setDownloadStatus("DOWNLOAD FAILED");
       
-      // Fallback: If fetch fails (usually CORS), try direct download attribute
-      // though it might still just play in browser if cross-origin
-      const link = document.createElement('a');
-      link.href = videoUrl;
-      link.target = "_blank";
-      link.download = `${movie.title.replace(/\s+/g, '_')}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Fallback: Direct link
+      window.open(videoUrl, '_blank');
 
       setTimeout(() => {
         setDownloadStatus('READY');
