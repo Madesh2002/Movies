@@ -447,11 +447,6 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
                 </div>
                 <div className="flex items-center gap-2">
                   {!isLocked && (
-                    <button onClick={toggleOrientation} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white" title="Rotate">
-                      <ScreenShare size={24} className={isLandscape ? 'rotate-90' : ''} />
-                    </button>
-                  )}
-                  {!isLocked && (
                     <button onClick={handleDownload} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white" title="Download">
                       <Download size={24} />
                     </button>
@@ -469,10 +464,6 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
               {/* Center Controls */}
               {!isLocked && (
                 <div className="flex items-center justify-center gap-8 md:gap-16">
-                  <button onClick={togglePip} className="p-3 hover:bg-white/10 rounded-full transition-colors text-white hidden md:block">
-                    <PictureInPicture2 size={32} />
-                  </button>
-                  
                   <div className="flex items-center gap-8 md:gap-12">
                     <button onClick={() => skip(-10)} className="relative p-2 hover:bg-white/10 rounded-full transition-colors text-white group">
                       <RotateCcw size={40} />
@@ -488,13 +479,6 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
                       <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black mt-1">10</span>
                     </button>
                   </div>
-
-                  <button 
-                    onClick={() => setShowSettings(!showSettings)}
-                    className={`p-3 hover:bg-white/10 rounded-full transition-colors text-white hidden md:block ${showSettings ? 'bg-white/10' : ''}`}
-                  >
-                    <Settings size={32} />
-                  </button>
                 </div>
               )}
 
@@ -651,14 +635,6 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
                           />
                         </div>
                       </div>
-
-                      <button 
-                        onClick={() => setIsFitCover(!isFitCover)}
-                        className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
-                        title={isFitCover ? 'Fit' : 'Fill'}
-                      >
-                        <ScreenShare size={20} className={isFitCover ? 'text-red-600' : ''} />
-                      </button>
 
                       <button 
                         onClick={toggleFullscreen}
