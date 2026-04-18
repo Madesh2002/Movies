@@ -434,7 +434,7 @@ export default function AdminPanel({
                 <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-[#222] p-8 md:p-12 rounded-[2rem] relative overflow-hidden">
                   <div className="relative z-10">
                     <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tighter">Welcome Back, Admin</h1>
-                    <p className="text-[#888] font-medium">Your streaming platform control center is ready.</p>
+                    <p className="text-[#888] font-medium">Security: Permanent Master PIN active.</p>
                     
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
                       <div className="bg-[#111] border border-[#222] p-6 rounded-2xl hover:border-[#e50914]/30 transition-colors group">

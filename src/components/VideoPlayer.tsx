@@ -7,7 +7,7 @@ import {
   X, Download, Play, Pause, RotateCcw, RotateCw, 
   Settings, PictureInPicture2, Lock, Unlock, AlertCircle,
   RefreshCcw, ScreenShare, Maximize, Minimize, Volume2, VolumeX, Volume1,
-  MoreVertical, ChevronLeft, Menu
+  MoreVertical, ChevronLeft, Menu, Sun
 } from 'lucide-react';
 import { Movie } from '../types';
 
@@ -546,6 +546,15 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
           pointer-events: none;
           z-index: 5;
         }
+        .plyr, .plyr__video-wrapper {
+          width: 100% !important;
+          height: 100% !important;
+          background: transparent !important;
+        }
+        video {
+          width: 100% !important;
+          height: 100% !important;
+        }
       `}} />
       {/* Video Element */}
       <div className="relative w-full h-full flex items-center justify-center">
@@ -570,10 +579,10 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.5 }}
-              className={`absolute z-50 flex flex-col items-center justify-center p-6 bg-black/60 backdrop-blur-sm rounded-3xl border border-white/10 ${activeGesture === 'volume' ? 'left-10 md:left-20' : 'right-10 md:right-20'}`}
-              style={{ top: '50%', transform: 'translateY(-50%)' }}
+              className={`absolute z-50 flex flex-col items-center justify-center p-5 bg-black/80 backdrop-blur-xl rounded-3xl border border-white/10 ${activeGesture === 'volume' ? 'left-6 md:left-12' : 'right-6 md:right-12'}`}
+              style={{ top: '42%', transform: 'translateY(-50%)' }}
             >
-              <div className="relative h-40 w-1.5 bg-white/20 rounded-full overflow-hidden mb-4">
+              <div className="relative h-32 w-1.5 bg-white/20 rounded-full overflow-hidden mb-4">
                 <motion.div 
                   className="absolute bottom-0 left-0 right-0 bg-white"
                   style={{ height: `${gestureValue}%` }}
@@ -581,9 +590,9 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
               </div>
               <div className="flex flex-col items-center gap-1">
                 {activeGesture === 'volume' ? (
-                  <Volume2 className="text-white" size={24} />
+                  <Volume2 className="text-white" size={20} />
                 ) : (
-                  <Settings className="text-white animate-spin-slow" size={24} />
+                  <Sun className="text-white animate-pulse" size={20} />
                 )}
                 <span className="text-white font-black text-xs tracking-widest">{gestureValue}%</span>
               </div>
@@ -595,15 +604,21 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
         <AnimatePresence>
           {showControls && (
             <motion.div
-              initial={{ opacity: 0, y: 50 }}
+              initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
               className="absolute top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
             >
-              <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
-                <Maximize size={14} className="text-red-600" />
-                <span className="text-white text-[10px] font-black uppercase tracking-widest">
-                  {zoomLevel === 'contain' ? 'Fit' : zoomLevel === 'cover' ? 'Zoom (Fill)' : 'Stretch'}
-                </span>
+              <div className="bg-black/80 backdrop-blur-xl px-5 py-2.5 rounded-2xl border border-white/10 flex items-center gap-3 shadow-2xl">
+                <div className="p-1.5 bg-red-600/20 rounded-lg">
+                  <Maximize size={16} className="text-red-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-white text-[10px] font-black uppercase tracking-[0.2em]">Zoom Mode</span>
+                  <span className="text-zinc-400 text-[9px] font-black uppercase tracking-widest">
+                    {zoomLevel === 'contain' ? 'Original (Fit)' : zoomLevel === 'cover' ? 'Full (Zoom)' : 'Stretch (Fill)'}
+                  </span>
+                </div>
               </div>
             </motion.div>
           )}
