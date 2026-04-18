@@ -32,6 +32,7 @@ export default function AdminPanel({
   const [formData, setFormData] = useState({
     title: '',
     year: '',
+    quality: 'HD',
     image: '',
     category: 'Movie',
     language: 'Kannada',
@@ -193,6 +194,7 @@ export default function AdminPanel({
       const dataToSave = {
         title: formData.title.trim(),
         year: formData.year.trim(),
+        quality: formData.quality,
         image: formData.image.trim(),
         category: formData.category,
         language: formData.category === 'Banner' ? '' : formData.language,
@@ -224,6 +226,7 @@ export default function AdminPanel({
     setFormData({
       title: movie.title || '',
       year: movie.year || '',
+      quality: movie.quality || 'HD',
       image: movie.image || '',
       category: movie.category || 'Movie',
       language: movie.language || 'Kannada',
@@ -281,6 +284,7 @@ export default function AdminPanel({
     setFormData({
       title: '',
       year: '',
+      quality: 'HD',
       image: '',
       category: 'Movie',
       language: 'Kannada',
@@ -469,8 +473,8 @@ export default function AdminPanel({
                 </h4>
                 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                  <div className="grid md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="space-y-2 lg:col-span-2">
                       <label className="text-[10px] font-black text-[#555] uppercase tracking-widest ml-1">Title</label>
                       <input 
                         type="text" 
@@ -482,13 +486,27 @@ export default function AdminPanel({
                     </div>
 
                     <div className="space-y-2">
+                      <label className="text-[10px] font-black text-[#555] uppercase tracking-widest ml-1">Print Quality</label>
+                      <select 
+                        value={formData.quality}
+                        onChange={e => setFormData({...formData, quality: e.target.value})}
+                        className="w-full bg-[#1f1f1f] border border-[#333] rounded-xl py-4 px-5 focus:border-[#e50914] outline-none transition-all text-sm font-medium appearance-none"
+                      >
+                        <option value="HD">HD</option>
+                        <option value="HQ">HQ</option>
+                        <option value="HDTC">HDTC</option>
+                        <option value="HDTS">HDTS</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
                       <label className="text-[10px] font-black text-[#555] uppercase tracking-widest ml-1">Release Year</label>
                       <input 
                         type="text" 
                         value={formData.year}
                         onChange={e => setFormData({...formData, year: e.target.value})}
                         className="w-full bg-[#1f1f1f] border border-[#333] rounded-xl py-4 px-5 focus:border-[#e50914] outline-none transition-all text-sm font-medium"
-                        placeholder="Ex: 2025"
+                        placeholder="Ex: 2026"
                       />
                     </div>
                     
@@ -517,7 +535,7 @@ export default function AdminPanel({
                     </div>
 
                     {formData.category !== 'Banner' && (
-                      <div className="space-y-2 md:col-span-2">
+                      <div className="space-y-2 lg:col-span-3">
                         <label className="text-[10px] font-black text-[#555] uppercase tracking-widest ml-1">Language</label>
                         <select 
                           value={formData.language}
@@ -528,7 +546,7 @@ export default function AdminPanel({
                           <option value="Telugu">Telugu</option>
                           <option value="Hindi">Hindi</option>
                           <option value="Tamil">Tamil</option>
-                          <option value="Malayalam">Malayalam</option>
+                          <option value="English">English</option>
                         </select>
                       </div>
                     )}
@@ -793,12 +811,17 @@ export default function AdminPanel({
                           </td>
                           <td className="p-6">
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="font-black text-lg tracking-tight group-hover:text-[#e50914] transition-colors">{movie.title}</div>
+                              <div className="font-black text-lg tracking-tight group-hover:text-[#e50914] transition-colors">
+                                {movie.title} <span className="text-[#555] text-xs font-bold">({movie.quality || 'N/A'})</span>
+                              </div>
                               {movie.year && <span className="text-[#555] text-xs font-bold">({movie.year})</span>}
                             </div>
                             <div className="flex flex-wrap gap-2">
                               <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${movie.category === 'Banner' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : movie.category === 'Series' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'bg-red-600/10 text-red-600 border border-red-600/20'}`}>
                                 {movie.category}
+                              </span>
+                              <span className="text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest bg-[#e50914] text-white">
+                                {movie.quality || 'HD'}
                               </span>
                               {movie.language && (
                                 <span className="text-[9px] font-black bg-[#1f1f1f] text-[#888] px-3 py-1 rounded-full uppercase tracking-widest border border-[#333]">

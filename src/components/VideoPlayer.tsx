@@ -27,7 +27,6 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
-  const [isFitCover, setIsFitCover] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
   const [isPip, setIsPip] = useState(false);
@@ -36,11 +35,19 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [brightness, setBrightness] = useState(1);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
+  const [activeGesture, setActiveGesture] = useState<'none' | 'volume' | 'brightness'>('none');
+  const [gestureValue, setGestureValue] = useState(0);
+  const [showGestureIndicator, setShowGestureIndicator] = useState(false);
+  const indicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<'contain' | 'cover' | 'fill'>('contain');
   const [settingsView, setSettingsView] = useState<'main' | 'speed' | 'chapters'>('main');
   const [hoveredChapter, setHoveredChapter] = useState<{ title: string; x: number } | null>(null);
 
+  const touchStartRef = useRef<{ x: number, y: number } | null>(null);
+  const initialValueRef = useRef<number>(0);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isLandscape, setIsLandscape] = useState(false);
   const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
@@ -188,14 +195,176 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
 
   const lastClickTimeRef = useRef<number>(0);
 
+  const triggerIndicator = (type: 'volume' | 'brightness', value: number) => {
+    setActiveGesture(type);
+    setGestureValue(Math.round(value * 100));
+    setShowGestureIndicator(true);
+    if (indicatorTimeoutRef.current) clearTimeout(indicatorTimeoutRef.current);
+    indicatorTimeoutRef.current = setTimeout(() => {
+      setShowGestureIndicator(false);
+      setActiveGesture('none');
+    }, 1000);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isLocked) return;
+
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          const newVolUp = Math.min(1, volume + 0.05);
+          setVolume(newVolUp);
+          if (playerRef.current) playerRef.current.volume = newVolUp;
+          triggerIndicator('volume', newVolUp);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          const newVolDown = Math.max(0, volume - 0.05);
+          setVolume(newVolDown);
+          if (playerRef.current) playerRef.current.volume = newVolDown;
+          triggerIndicator('volume', newVolDown);
+          break;
+        case 'ArrowLeft':
+          skip(-10);
+          break;
+        case 'ArrowRight':
+          skip(10);
+          break;
+        case ' ':
+        case 'Enter':
+          e.preventDefault();
+          togglePlay();
+          break;
+        case 'z':
+        case 'Z':
+          cycleZoom();
+          break;
+        case '[':
+          const newBrightDown = Math.max(0, brightness - 0.05);
+          setBrightness(newBrightDown);
+          triggerIndicator('brightness', newBrightDown);
+          break;
+        case ']':
+          const newBrightUp = Math.min(1, brightness + 0.05);
+          setBrightness(newBrightUp);
+          triggerIndicator('brightness', newBrightUp);
+          break;
+        case 'f':
+        case 'F':
+          toggleFullscreen();
+          break;
+        case 'm':
+        case 'M':
+          toggleMute();
+          break;
+        case 'Escape':
+          if (document.fullscreenElement) {
+            document.exitFullscreen();
+          } else {
+            onClose();
+          }
+          break;
+      }
+      resetControlsTimeout();
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      if (isLocked) return;
+      e.preventDefault();
+      
+      const { width } = containerRef.current!.getBoundingClientRect();
+      const isLeftSide = e.clientX < width / 2;
+      
+      if (isLeftSide || e.shiftKey) {
+        const change = e.deltaY > 0 ? -0.05 : 0.05;
+        const newVol = Math.min(1, Math.max(0, volume + change));
+        setVolume(newVol);
+        if (playerRef.current) playerRef.current.volume = newVol;
+        triggerIndicator('volume', newVol);
+      } else {
+        const change = e.deltaY > 0 ? -0.05 : 0.05;
+        const newBright = Math.min(1, Math.max(0, brightness + change));
+        setBrightness(newBright);
+        triggerIndicator('brightness', newBright);
+      }
+      resetControlsTimeout();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    containerRef.current?.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      containerRef.current?.removeEventListener('wheel', handleWheel);
+    };
+  }, [volume, brightness, isLocked, isPlaying, zoomLevel]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isLocked) return;
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    
+    const { width } = containerRef.current!.getBoundingClientRect();
+    if (touch.clientX < width / 2) {
+      setActiveGesture('volume');
+      initialValueRef.current = volume;
+    } else {
+      setActiveGesture('brightness');
+      initialValueRef.current = brightness;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isLocked || !touchStartRef.current) return;
+    const touch = e.touches[0];
+    const deltaY = touchStartRef.current.y - touch.clientY;
+    const sensitivity = 200; // Pixels for full range
+    const change = deltaY / sensitivity;
+    
+    let newValue = Math.min(1, Math.max(0, initialValueRef.current + change));
+    
+    if (activeGesture === 'volume') {
+      const v = newValue;
+      setVolume(v);
+      if (playerRef.current) {
+        playerRef.current.volume = v;
+      }
+      setGestureValue(Math.round(v * 100));
+      setShowGestureIndicator(true);
+    } else if (activeGesture === 'brightness') {
+      const b = newValue;
+      setBrightness(b);
+      setGestureValue(Math.round(b * 100));
+      setShowGestureIndicator(true);
+    }
+    
+    resetControlsTimeout();
+  };
+
+  const handleTouchEnd = () => {
+    indicatorTimeoutRef.current = setTimeout(() => {
+      setShowGestureIndicator(false);
+      setActiveGesture('none');
+    }, 500);
+    touchStartRef.current = null;
+  };
+
+  const cycleZoom = () => {
+    if (isLocked) return;
+    const zooms: ('contain' | 'cover' | 'fill')[] = ['contain', 'cover', 'fill'];
+    const nextIndex = (zooms.indexOf(zoomLevel) + 1) % zooms.length;
+    setZoomLevel(zooms[nextIndex]);
+    resetControlsTimeout();
+  };
+
   const handleVideoClick = (e: React.MouseEvent) => {
     const now = Date.now();
     const DOUBLE_CLICK_DELAY = 300;
     
     if (now - lastClickTimeRef.current < DOUBLE_CLICK_DELAY) {
       // Double tap detected
-      setIsFitCover(!isFitCover);
-      resetControlsTimeout();
+      cycleZoom();
     } else {
       // Single tap
       togglePlay();
@@ -355,6 +524,9 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
       exit={{ opacity: 0 }}
       onMouseMove={handleMouseMove}
       onClick={handleMouseMove}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       className={`fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center overflow-hidden select-none ${!showControls ? 'cursor-none' : 'cursor-default'} ${isLandscape && isPortrait ? 'rotate-container' : ''}`}
     >
       <style dangerouslySetInnerHTML={{ __html: `
@@ -367,6 +539,13 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
           transform: translate(-50%, -50%) rotate(90deg) !important;
           z-index: 9999 !important;
         }
+        .brightness-overlay {
+          position: absolute;
+          inset: 0;
+          background: black;
+          pointer-events: none;
+          z-index: 5;
+        }
       `}} />
       {/* Video Element */}
       <div className="relative w-full h-full flex items-center justify-center">
@@ -374,9 +553,61 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
           ref={videoRef} 
           playsInline 
           preload="auto"
-          className={`w-full h-full transition-all duration-300 ${isFitCover ? 'object-cover' : 'object-contain'} ${error ? 'opacity-20' : 'opacity-100'}`}
+          className={`w-full h-full transition-all duration-300 ${zoomLevel === 'cover' ? 'object-cover' : zoomLevel === 'fill' ? 'object-fill' : 'object-contain'} ${error ? 'opacity-20' : 'opacity-100'}`}
           onClick={handleVideoClick}
         />
+
+        {/* Brightness Overlay */}
+        <div 
+          className="brightness-overlay" 
+          style={{ opacity: 1 - brightness }} 
+        />
+
+        {/* Gesture Indicators */}
+        <AnimatePresence>
+          {showGestureIndicator && activeGesture !== 'none' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              className={`absolute z-50 flex flex-col items-center justify-center p-6 bg-black/60 backdrop-blur-sm rounded-3xl border border-white/10 ${activeGesture === 'volume' ? 'left-10 md:left-20' : 'right-10 md:right-20'}`}
+              style={{ top: '50%', transform: 'translateY(-50%)' }}
+            >
+              <div className="relative h-40 w-1.5 bg-white/20 rounded-full overflow-hidden mb-4">
+                <motion.div 
+                  className="absolute bottom-0 left-0 right-0 bg-white"
+                  style={{ height: `${gestureValue}%` }}
+                />
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                {activeGesture === 'volume' ? (
+                  <Volume2 className="text-white" size={24} />
+                ) : (
+                  <Settings className="text-white animate-spin-slow" size={24} />
+                )}
+                <span className="text-white font-black text-xs tracking-widest">{gestureValue}%</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Zoom Indicator */}
+        <AnimatePresence>
+          {showControls && (
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+            >
+              <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
+                <Maximize size={14} className="text-red-600" />
+                <span className="text-white text-[10px] font-black uppercase tracking-widest">
+                  {zoomLevel === 'contain' ? 'Fit' : zoomLevel === 'cover' ? 'Zoom (Fill)' : 'Stretch'}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Buffering Indicator */}
         <AnimatePresence>
@@ -546,16 +777,16 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
                           <div className="h-px bg-white/5 mx-2" />
 
                           <button
-                            onClick={() => { setIsFitCover(!isFitCover); setShowSettings(false); }}
+                            onClick={() => { cycleZoom(); setShowSettings(false); }}
                             className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-zinc-300 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between"
                           >
                             <div className="flex items-center gap-3">
                               <Maximize size={18} />
-                              <span>Fill Screen</span>
+                              <span>Zoom Mode</span>
                             </div>
-                            <div className={`w-8 h-4 rounded-full relative transition-colors ${isFitCover ? 'bg-red-600' : 'bg-white/10'}`}>
-                              <div className={`absolute top-1 w-2 h-2 bg-white rounded-full transition-all ${isFitCover ? 'left-5' : 'left-1'}`} />
-                            </div>
+                            <span className="text-red-600 text-[10px] font-black uppercase tracking-widest">
+                              {zoomLevel}
+                            </span>
                           </button>
 
                           <div className="h-px bg-white/5 mx-2" />
@@ -693,9 +924,9 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
                       </div>
 
                       <button 
-                        onClick={() => setIsFitCover(!isFitCover)}
-                        className={`p-2 hover:bg-white/10 rounded-full transition-colors ${isFitCover ? 'text-red-600 bg-white/5' : 'text-white'}`}
-                        title={isFitCover ? 'Original Size' : 'Fill Screen'}
+                        onClick={cycleZoom}
+                        className={`p-2 hover:bg-white/10 rounded-full transition-colors ${zoomLevel !== 'contain' ? 'text-red-600 bg-white/5' : 'text-white'}`}
+                        title="Change Zoom Mode"
                       >
                         <Maximize size={20} />
                       </button>
