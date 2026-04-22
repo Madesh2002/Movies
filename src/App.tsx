@@ -1277,20 +1277,22 @@ export default function App() {
                 </h2>
               </div>
 
-              <div className="flex items-center bg-white/5 rounded-full px-6 py-3 w-full md:w-96 border border-white/10 focus-within:border-red-600 transition-all backdrop-blur-sm">
-                <Search className="w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder={`Search in ${selectedCategory}...`}
-                  className="bg-transparent border-none outline-none ml-3 w-full text-white text-sm font-medium"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                <div className="flex items-center bg-white/5 rounded-full px-6 py-3 w-full md:w-80 border border-white/10 focus-within:border-red-600 transition-all backdrop-blur-sm">
+                  <Search className="w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder={`Search in ${selectedCategory}...`}
+                    className="bg-transparent border-none outline-none ml-3 w-full text-white text-sm font-medium"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5">
-              {filterByLang(selectedCategory).filter(m => m.title?.toLowerCase().includes(searchQuery.toLowerCase())).map(m => (
+              {(selectedCategory === 'Trending' ? movies.slice(0, 30) : filterByLang(selectedCategory)).filter(m => m.title?.toLowerCase().includes(searchQuery.toLowerCase())).map(m => (
                 <MovieCard 
                   key={m.id}
                   movie={m}
@@ -1314,15 +1316,17 @@ export default function App() {
                 <h2 className="text-2xl sm:text-4xl font-black text-red-600 uppercase tracking-tighter italic">MOVIES</h2>
               </div>
 
-              <div className="flex items-center bg-white/5 rounded-full px-6 py-3 w-full md:w-96 border border-white/10 focus-within:border-red-600 transition-all backdrop-blur-sm">
-                <Search className="w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search movies..."
-                  className="bg-transparent border-none outline-none ml-3 w-full text-white text-sm font-medium"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                <div className="flex items-center bg-white/5 rounded-full px-6 py-3 w-full md:w-80 border border-white/10 focus-within:border-red-600 transition-all backdrop-blur-sm">
+                  <Search className="w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search movies..."
+                    className="bg-transparent border-none outline-none ml-3 w-full text-white text-sm font-medium"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
             
@@ -1366,15 +1370,17 @@ export default function App() {
                 <h2 className="text-2xl sm:text-4xl font-black text-red-600 uppercase italic">MY LIST</h2>
               </div>
 
-              <div className="flex items-center bg-white/5 rounded-full px-6 py-3 w-full md:w-96 border border-white/10 focus-within:border-red-600 transition-all backdrop-blur-sm">
-                <Search className="w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search in your list..."
-                  className="bg-transparent border-none outline-none ml-3 w-full text-white text-sm font-medium"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                <div className="flex items-center bg-white/5 rounded-full px-6 py-3 w-full md:w-80 border border-white/10 focus-within:border-red-600 transition-all backdrop-blur-sm">
+                  <Search className="w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search in your list..."
+                    className="bg-transparent border-none outline-none ml-3 w-full text-white text-sm font-medium"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
