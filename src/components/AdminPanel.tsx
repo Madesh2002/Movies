@@ -171,7 +171,8 @@ export default function AdminPanel({
 
       if (amtMatch) {
         const val = parseFloat(amtMatch[1].replace(/,/g, ''));
-        price = `₹${val}`;
+        const today = new Date();
+        let plan = '';
         if (val >= 149) {
           plan = '90 Days (149 RS)';
           today.setDate(today.getDate() + 90);
@@ -183,7 +184,7 @@ export default function AdminPanel({
           today.setDate(today.getDate() + 7);
         }
         
-        expiry = today.toISOString().split('T')[0];
+        const expiry = today.toISOString().split('T')[0];
         
         setUserFormData(prev => ({
           ...prev,

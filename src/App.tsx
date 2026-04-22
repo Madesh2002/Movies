@@ -491,9 +491,12 @@ const Navbar = ({
             ))}
           </div>
         </div>
-        <div className={`flex items-center gap-2 sm:gap-6 transition-opacity duration-300 opacity-100 flex-shrink-0 ${isSearchExpanded ? 'flex-1 justify-end' : ''}`}>
-          <div className={`flex items-center bg-white/5 rounded-full px-3 sm:px-4 py-1.5 transition-all duration-500 border border-white/5 focus-within:border-red-600 focus-within:bg-red-600/5 ${isSearchExpanded ? 'w-full sm:w-64 md:w-80 shadow-[0_0_20px_rgba(229,9,20,0.1)]' : 'w-10 sm:w-12 hover:bg-white/10'}`}>
-            <Search className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer text-gray-400 flex-shrink-0" onClick={() => setIsSearchExpanded(!isSearchExpanded)} />
+        <div className={`flex items-center gap-3 transition-all duration-300 ${isSearchExpanded ? 'flex-1 justify-end' : 'flex-shrink-0'}`}>
+          <div className={`flex items-center bg-white/5 rounded-full px-4 h-10 transition-all duration-500 border border-white/5 focus-within:border-red-600 focus-within:bg-red-600/5 ${isSearchExpanded ? 'w-full sm:w-64 md:w-80 shadow-[0_0_20px_rgba(229,9,20,0.1)]' : 'w-10 sm:w-12 hover:bg-white/10'}`}>
+            <Search 
+              className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer text-gray-400 flex-shrink-0" 
+              onClick={() => setIsSearchExpanded(!isSearchExpanded)} 
+            />
             <input
               ref={searchInputRef}
               type="text"
@@ -511,8 +514,14 @@ const Navbar = ({
             )}
           </div>
 
-          <a href="https://t.me/primebharath1" target="_blank" rel="noreferrer" className="hidden lg:flex items-center gap-2 bg-[#229ED9] hover:bg-[#229ED9]/90 px-6 py-2.5 rounded-full text-[10px] font-black text-white shadow-xl transition-all hover:scale-105 active:scale-95 uppercase tracking-widest whitespace-nowrap">
-            <Send className="w-3 h-3 fill-current" /> Join Telegram
+          <a 
+            href="https://t.me/primebharath1" 
+            target="_blank" 
+            rel="noreferrer" 
+            className="hidden sm:flex items-center justify-center bg-[#229ED9] hover:bg-[#1e8ec4] w-10 h-10 sm:w-auto sm:px-6 rounded-full text-[10px] font-black text-white shadow-xl transition-all hover:scale-105 active:scale-95 uppercase tracking-widest whitespace-nowrap"
+          >
+            <Send className="w-4 h-4 fill-current" />
+            <span className="hidden lg:inline ml-2">Join Telegram</span>
           </a>
 
           <button 

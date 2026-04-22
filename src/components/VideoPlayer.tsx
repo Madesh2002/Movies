@@ -45,6 +45,10 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
   const [zoomLevel, setZoomLevel] = useState<'contain' | 'cover' | 'fill'>('contain');
   const [settingsView, setSettingsView] = useState<'main' | 'speed' | 'chapters'>('main');
   const [hoveredChapter, setHoveredChapter] = useState<{ title: string; x: number } | null>(null);
+  const [previewTime, setPreviewTime] = useState<number | null>(null);
+  const [previewPos, setPreviewPos] = useState<number>(0);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const previewHlsRef = useRef<Hls | null>(null);
 
   const touchStartRef = useRef<{ x: number, y: number } | null>(null);
   const initialValueRef = useRef<number>(0);
@@ -145,11 +149,21 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
           hls.loadSource(selectedUrl);
           hls.attachMedia(video);
           hlsRef.current = hls;
+
+          // For preview video
+          if (previewVideoRef.current) {
+            const previewHls = new Hls();
+            previewHls.loadSource(selectedUrl);
+            previewHls.attachMedia(previewVideoRef.current);
+            previewHlsRef.current = previewHls;
+          }
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = selectedUrl;
+          if (previewVideoRef.current) previewVideoRef.current.src = selectedUrl;
         }
       } else {
         video.src = selectedUrl;
+        if (previewVideoRef.current) previewVideoRef.current.src = selectedUrl;
       }
 
       player.on('playing', () => {
@@ -189,6 +203,7 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
         video.removeEventListener('leavepictureinpicture', onLeavePip);
         if (playerRef.current) playerRef.current.destroy();
         if (hlsRef.current) hlsRef.current.destroy();
+        if (previewHlsRef.current) previewHlsRef.current.destroy();
       };
     }
   }, [selectedUrl]);
@@ -978,7 +993,7 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
 
                     {/* Chapter Hover Title */}
                     <AnimatePresence>
-                      {hoveredChapter && (
+                      {hoveredChapter && !previewTime && (
                         <motion.div
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: -25 }}
@@ -991,6 +1006,34 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
                       )}
                     </AnimatePresence>
 
+                    {/* Preview Thumbnail */}
+                    <AnimatePresence>
+                      {previewTime !== null && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8, y: -20, x: '-50%' }}
+                          animate={{ opacity: 1, scale: 1, y: -100, x: '-50%' }}
+                          exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                          className="absolute z-50 pointer-events-none"
+                          style={{ left: `${previewPos}%` }}
+                        >
+                          <div className="relative group">
+                            <div className="w-40 sm:w-56 aspect-video bg-zinc-900 rounded-xl overflow-hidden border-2 border-red-600 shadow-2xl flex flex-col">
+                              <video 
+                                ref={previewVideoRef}
+                                muted
+                                className="w-full h-full object-cover opacity-80"
+                              />
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                                <p className="text-white font-mono text-[10px] text-center">{formatTime(previewTime)}</p>
+                              </div>
+                            </div>
+                            {/* Marker point */}
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-600 rotate-45" />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <input 
                       type="range"
                       min="0"
@@ -998,9 +1041,20 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
                       value={currentTime}
                       onChange={handleSeek}
                       onMouseMove={(e) => {
-                        if (!movie.chapters || !duration) return;
                         const rect = e.currentTarget.getBoundingClientRect();
-                        const x = ((e.clientX - rect.left) / rect.width) * duration;
+                        const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                        const time = percent * duration;
+                        const posPercent = percent * 100;
+
+                        setPreviewTime(time);
+                        setPreviewPos(posPercent);
+
+                        if (previewVideoRef.current) {
+                          previewVideoRef.current.currentTime = time;
+                        }
+
+                        if (!movie.chapters || !duration) return;
+                        const x = percent * duration;
                         const chapter = [...movie.chapters].reverse().find(c => c.time <= x);
                         if (chapter) {
                           setHoveredChapter({ 
@@ -1009,7 +1063,10 @@ export default function VideoPlayer({ movie, selectedUrl, onClose }: VideoPlayer
                           });
                         }
                       }}
-                      onMouseLeave={() => setHoveredChapter(null)}
+                      onMouseLeave={() => {
+                        setHoveredChapter(null);
+                        setPreviewTime(null);
+                      }}
                       className="absolute w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-red-600 outline-none z-10"
                     />
                     <div 
